@@ -26,6 +26,8 @@ ActiveAdmin.register Loan do
     id_column
     column :amount
     column :interest_rate
+    column :total_amount
+    column :repaid_amount
     column :state
     column :user
     column :last_updated_by
@@ -38,6 +40,8 @@ ActiveAdmin.register Loan do
       f.input :amount, input_html: { min: 0 }, hint: "Enter the loan amount (minimum 0)"
       f.input :interest_rate, input_html: { min: 0 }, hint: "Enter the interest rate (minimum 0)"
       f.input :state, as: :select, collection: Loan::STATES, hint: "Select the loan state"
+      # f.input :state, as: :select, collection: %w[requested approved rejected waiting_for_adjustment_acceptance], hint: "Select the loan state"
+
       f.input :last_updated_by, as: :select, collection: ["admin"], include_blank: false
     end
     f.actions

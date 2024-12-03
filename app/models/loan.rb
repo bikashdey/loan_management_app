@@ -3,7 +3,7 @@ class Loan < ApplicationRecord
   belongs_to :user # The user requesting the loan
 
   def self.ransackable_attributes(auth_object = nil)
-    ["id", "user_id", "admin_id", "amount", "interest_rate", "total_interest", "last_updated_by", "total_amount", "state", "adjustments", "created_at", "updated_at"]
+    ["id", "user_id", "repaid_amount", "admin_id", "amount", "interest_rate", "total_interest", "last_updated_by", "total_amount", "state", "adjustments", "created_at", "updated_at"]
   end
   def self.ransackable_associations(auth_object = nil)
     ["admin", "user"]

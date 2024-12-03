@@ -39,19 +39,27 @@ class LoansController < ApplicationController
 
   # PUT /loans/:id/repay
   def repay
-    authorize @loan, :repay? # Authorization for repayment
+    authorize @loan, :repay?
     if @loan.state != "open"
       return render json: { error: "Loan not open for repayment" }, status: :unprocessable_entity
     end
-
-    repayment = [@loan.total_amount, current_user.wallet].min
+    
+    remaining_amount_to_repay = @loan.total_amount - @loan.repaid_amount
+    #its take the min amount for repayment may be user wallet have more amount the loan amount
+    repayment = [@loan.total_amount, current_user.wallet, remaining_amount_to_repay].min
+    return render json: { error: "Insufficient fund to Repay"} , status: 422 if repayment < 0
     ActiveRecord::Base.transaction do
+
       current_user.update!(wallet: current_user.wallet - repayment)
       admin.update!(wallet: admin.wallet + repayment)
+      @loan.update!(repaid_amount: @loan.repaid_amount + repayment )
 
-      if repayment == @loan.total_amount
-        @loan.update!(state: "closed")
+      # When the loan amount (principal + interest) exceeds the user's wallet amount, whatever money is in the user's wallet should be debited and credited to the admin's wallet. The loan is then considered closed.
+
+      if @loan.total_amount == @loan.repaid_amount
+        @loan.update!(state: "closed",last_updated_by: 'user')
       end
+
     end
 
     render json: { status: "Repayment successful", remaining_wallet: current_user.wallet }
@@ -72,18 +80,25 @@ class LoansController < ApplicationController
     AdminUser&.first
   end
 
-  # Helper methods for loan actions
   def process_loan_acceptance
     if @loan.state == 'approved'
-      @loan.update!(state: 'open', last_updated_by: 'user')
-      # Debit admin and credit user
-      admin.update!(wallet: admin.wallet - @loan.amount)
-      current_user.update!(wallet: current_user.wallet + @loan.amount)
-      render json: { message: 'Loan accepted and moved to open state' }
+      @loan.update!(state: 'open', last_updated_by: 'admin')
+
+      # Find the admin responsible for the approval
+      if admin.wallet >= @loan.amount
+        # Debit admin's wallet and credit user's wallet
+        admin.update!(wallet: admin.wallet - @loan.amount)
+        @loan.user.update!(wallet: @loan.user.wallet + @loan.amount)
+
+        render json: { message: 'Loan accepted and moved to open state' }, status: :ok
+      else
+        render json: { error: 'Insufficient funds in admin wallet' }, status: :unprocessable_entity
+      end
     else
       render json: { error: 'Loan cannot be accepted at this stage' }, status: :unprocessable_entity
     end
   end
+
 
   def process_loan_rejection
     if %w[approved waiting_for_adjustment_acceptance].include?(@loan.state)
