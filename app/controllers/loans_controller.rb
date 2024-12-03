@@ -54,21 +54,20 @@ class LoansController < ApplicationController
       admin.update!(wallet: admin.wallet + repayment)
       @loan.update!(repaid_amount: @loan.repaid_amount + repayment )
 
-      # When the loan amount (principal + interest) exceeds the user's wallet amount, whatever money is in the user's wallet should be debited and credited to the admin's wallet. The loan is then considered closed.
-
+      # if total amount is equal to repaid amount that means loan is repaid now we can close the loan
       if @loan.total_amount == @loan.repaid_amount
         @loan.update!(state: "closed",last_updated_by: 'user')
       end
 
     end
 
-    render json: { status: "Repayment successful", remaining_wallet: current_user.wallet }
+    render json: { status: "Repayment successful", remaining_wallet: current_user.wallet , loan_state: @loan.state }
   end
 
   private
 
   def set_loan
-    @loan = current_user.loans.find(params[:id]) # Restrict to current user's loans
+    @loan = current_user.loans.find(params[:id])
   end
 
   def loan_params
