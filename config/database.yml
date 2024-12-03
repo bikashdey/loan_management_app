@@ -1,0 +1,22 @@
+development:
+  adapter: postgresql
+  database: loan_management_app_development
+  username: bikash
+  password: password
+  host: localhost
+
+test:
+  adapter: postgresql
+  database: loan_management_app_test
+  username: bikash
+  password: password
+  host: localhost
+
+# production:
+#   adapter: postgresql
+#   database: loan_management_app_production
+#   username: bikash
+#   password: <%= ENV['DATABASE_PASSWORD'] %>
+#   host: localhost
+#   pool: 5
+#   timeout: 5000
