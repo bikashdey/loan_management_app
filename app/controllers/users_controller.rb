@@ -21,7 +21,7 @@ class UsersController < ApplicationController
     end
   end
 
-  # Other actions like show, update, etc. (as defined earlier)
+  
   def show
     return render json: { message: "you are not authorized person" } if params[:id].to_i != @current_user.id 
     render json: @current_user.attributes, status: :ok
