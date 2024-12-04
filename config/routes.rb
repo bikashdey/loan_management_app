@@ -1,3 +1,4 @@
+require 'sidekiq/web'
 Rails.application.routes.draw do
 
   # # Devise routes for ActiveAdmin admin users
@@ -5,6 +6,7 @@ Rails.application.routes.draw do
 
   # # ActiveAdmin routes
   ActiveAdmin.routes(self)
+  mount Sidekiq::Web => '/sidekiq'
 
   # # Root and other resources
   # root to: "home#index"

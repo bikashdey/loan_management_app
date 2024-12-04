@@ -14,12 +14,13 @@ ActiveAdmin.register Loan do
   scope :rejected do |loans|
     loans.where(state: 'rejected')
   end
-  scope :adjusted do |loans|
-    loans.where(state: 'adjusted')
+  scope :closed do |loans|
+    loans.where(state: 'closed')
   end
   scope :open do |loans|
     loans.where(state: 'open')
   end
+
   # Index view
   index do
     selectable_column
@@ -27,6 +28,7 @@ ActiveAdmin.register Loan do
     column :amount
     column :interest_rate
     column :total_amount
+    column :total_interest
     column :repaid_amount
     column :state
     column :user
@@ -39,8 +41,8 @@ ActiveAdmin.register Loan do
     f.inputs "Loan Details" do
       f.input :amount, input_html: { min: 0 }, hint: "Enter the loan amount (minimum 0)"
       f.input :interest_rate, input_html: { min: 0 }, hint: "Enter the interest rate (minimum 0)"
-      f.input :state, as: :select, collection: Loan::STATES, hint: "Select the loan state"
-      # f.input :state, as: :select, collection: %w[requested approved rejected waiting_for_adjustment_acceptance], hint: "Select the loan state"
+      # f.input :state, as: :select, collection: Loan::STATES, include_blank: false,hint: "Select the loan state"
+      f.input :state, as: :select, collection: %w[requested approved rejected waiting_for_adjustment_acceptance],include_blank: false, hint: "Select the loan state"
 
       f.input :last_updated_by, as: :select, collection: ["admin"], include_blank: false
     end
@@ -54,9 +56,10 @@ ActiveAdmin.register Loan do
       row :interest_rate
       row :state
       row :user
-      row :loan_adjustment_amount
-      row :loan_adjustment_interest_rate
+      row :total_amount
+      row :total_interest
       row :last_updated_by
+      row :user
     end
   end
 

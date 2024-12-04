@@ -9,9 +9,19 @@ module JwtAuthentication
 
   def authenticate_request
     token = request.headers['Authorization']&.split(' ')&.last
-    decoded = JsonWebToken.decode(token)
-    @current_user = User.find(decoded[:user_id])
-  rescue ActiveRecord::RecordNotFound, JWT::DecodeError
-    render json: { error: 'Unauthorized' }, status: :unauthorized
+    if token.blank?
+      return render json: { error: 'Token is missing' }, status: :unauthorized
+    end
+
+    begin
+      decoded = JsonWebToken.decode(token)
+      @current_user = User.find(decoded[:user_id])
+    rescue JWT::ExpiredSignature
+      render json: { error: 'Token has expired' }, status: :unauthorized
+    rescue JWT::DecodeError
+      render json: { error: 'Invalid token' }, status: :unauthorized
+    rescue ActiveRecord::RecordNotFound
+      render json: { error: 'User not found' }, status: :unauthorized
+    end
   end
 end

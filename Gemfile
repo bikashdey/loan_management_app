@@ -36,6 +36,7 @@ gem "jbuilder"
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
 gem "byebug"
+gem "pry"
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ mingw mswin x64_mingw jruby ]
@@ -59,6 +60,11 @@ gem 'sassc-rails'
 # gem 'omniauth', '>= 1.0.0'
 gem 'pg'
 gem 'jwt'
+
+gem 'sidekiq'
+gem 'sidekiq-scheduler' # Optional: For scheduling recurring jobs
+gem 'sidekiq-cron'
+
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem

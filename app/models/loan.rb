@@ -1,9 +1,8 @@
 class Loan < ApplicationRecord
-  # Associations
   belongs_to :user # The user requesting the loan
 
   def self.ransackable_attributes(auth_object = nil)
-    ["id", "user_id", "repaid_amount", "admin_id", "amount", "interest_rate", "total_interest", "last_updated_by", "total_amount", "state", "adjustments", "created_at", "updated_at"]
+    ["id", "user_id", "repaid_amount", "admin_id", "amount", "interest_rate", "total_interest", "last_updated_by", "total_amount", "state", "adjustments", "created_at", "updated_at", "loan_credited_at"]
   end
   def self.ransackable_associations(auth_object = nil)
     ["admin", "user"]
@@ -19,43 +18,44 @@ class Loan < ApplicationRecord
 
   # Callbacks
   before_validation :set_default_state, on: :create
-  before_save :calculate_total_amount
+  before_create :set_default_interest
 
   # Scopes
   scope :open_loans, -> { where(state: 'open') }
   scope :requested_loans, -> { where(state: 'requested') }
   scope :approved_loans, -> { where(state: 'approved') }
 
-  # Methods
-  def approve!
-    raise 'Loan cannot be approved in its current state' unless state == 'requested'
+  # Calculate total loan amount based on interest by background job
+  def calculate_interest
+    return if state != 'open'
+    return if loan_credited_at.nil?
 
-    update!(state: 'approved')
+    # Time elapsed since the loan was credited (in minutes)
+    time_elapsed = (Time.current - loan_credited_at) / 60
+    return if time_elapsed < 5
+
+    # Calculate interest for the last 5-minute period
+    interest = (amount * interest_rate * (time_elapsed / 5)) / (60 * 24 * 365)
+
+    # Update the total interest and total amount
+    new_total_amount = self.total_amount + interest
+    self.total_amount = new_total_amount
+    self.total_interest = (self.total_interest.to_f ||= 0.0) + interest
+
+    begin
+      Rails.logger.info("New Total Amount: #{new_total_amount}")
+      Rails.logger.info("Current Total Amount Before Save: #{self.total_amount}")
+      
+      # Persist the changes to the loan record
+      update_column(:total_amount, new_total_amount.round(2))
+      update_column(:total_interest, self.total_interest.round(2)) if self.total_interest.present?
+
+      Rails.logger.info("Loan ID: #{id} saved successfully with Total Amount: #{self.total_amount}")
+    rescue => e
+      Rails.logger.error("Error saving loan ID #{id}: #{e.message}")
+    end
   end
 
-  def reject!
-    raise 'Loan cannot be rejected in its current state' unless %w[requested approved waiting_for_adjustment_acceptance].include?(state)
-
-    update!(state: 'rejected')
-  end
-
-  def move_to_waiting_for_adjustment!
-    raise 'Loan cannot be adjusted in its current state' unless state == 'approved'
-
-    update!(state: 'waiting_for_adjustment_acceptance')
-  end
-
-  def request_readjustment!
-    raise 'Loan cannot be readjusted in its current state' unless state == 'waiting_for_adjustment_acceptance'
-
-    update!(state: 'readjustment_requested')
-  end
-
-  def close!
-    raise 'Loan cannot be closed in its current state' unless state == 'open'
-
-    update!(state: 'closed')
-  end
 
   private
 
@@ -64,8 +64,11 @@ class Loan < ApplicationRecord
     self.state ||= 'requested'
   end
 
-  # Calculate total loan amount based on interest
-  def calculate_total_amount
-    self.total_amount = amount + (amount * interest_rate / 100.0)
+
+  # Default interest setup
+  def set_default_interest
+    self.total_interest ||= 0.0
+    self.total_amount ||= amount
   end
+
 end

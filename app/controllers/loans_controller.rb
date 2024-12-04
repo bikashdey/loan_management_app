@@ -81,7 +81,7 @@ class LoansController < ApplicationController
 
   def process_loan_acceptance
     if @loan.state == 'approved'
-      @loan.update!(state: 'open', last_updated_by: 'admin')
+      @loan.update!(state: 'open', last_updated_by: 'user', loan_credited_at: Time.current)
 
       # Find the admin responsible for the approval
       if admin.wallet >= @loan.amount
